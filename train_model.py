@@ -3,16 +3,14 @@ import pandas as pd, numpy as np
 import mlflow, mlflow.sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import ElasticNet, Ridge, Lasso
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 # ---------- 1. CLI ----------
 cli = argparse.ArgumentParser()
 cli.add_argument("--model",    required=True,
-                 choices=["elasticnet", "ridge", "lasso", "randomforest"])
+                 choices=["elasticnet", "ridge", "lasso"])
 cli.add_argument("--alpha",    type=float, default=0.5)
 cli.add_argument("--l1_ratio", type=float, default=0.5)
-cli.add_argument("--n_estimators", type=int, default=100)
 args = cli.parse_args()
 
 # ---------- 2. MLflow ----------
@@ -24,7 +22,7 @@ mlflow.set_experiment(f"mlops_redwine_{args.model}")
 csv_path = "data/red-wine-quality.csv"
 if not os.path.exists(csv_path):
     sys.exit(f"Fichier introuvable : {csv_path}")
-df = pd.read_csv(csv_path, sep=';')
+df = pd.read_csv(csv_path, sep=';')        # <‑‑ séparateur correct
 
 X = df.drop("quality", axis=1)
 y = df["quality"]
@@ -46,15 +44,10 @@ with mlflow.start_run():
         mlflow.log_param("l1_ratio", args.l1_ratio)
     elif args.model == "ridge":
         model = Ridge(alpha=args.alpha, random_state=42)
-    elif args.model == "lasso":
+    else:
         model = Lasso(alpha=args.alpha, random_state=42)
-    else:  # randomforest
-        model = RandomForestRegressor(n_estimators=args.n_estimators, random_state=42)
-        mlflow.log_param("n_estimators", args.n_estimators)
 
-    if args.model != "randomforest":
-        mlflow.log_param("alpha", args.alpha)
-    
+    mlflow.log_param("alpha", args.alpha)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
 
